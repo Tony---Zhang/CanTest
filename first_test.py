@@ -18,41 +18,24 @@ class TestSimpleAndroid():
             'platformName': 'Android',
             'platformVersion': '8.1.0',
             'deviceName': 'QHAP8YNK8Q',
-            'app': PATH('/Users/shuaiz/Downloads/hmipatent-debug.apk')
+            'automationName': 'UiAutomator2',
+            'unicodeKeyboard': True,
+            'autoGrantPermissions': True,
+            'appPackage': 'com.thoughtworks.hmipatent',
+            'fullReset': True,
+            'app': PATH('/Users/shuaiz/Downloads/hmipatent-debug.apk'),
+            'appWaitActivity': '*'
         }
         calling_request = request._pyfuncitem.name
         driver = webdriver.Remote(APPIUM_LOCAL_HOST_URL, desired_caps)
 
         def fin():
             take_screenhot_and_logcat(driver, device_logger, calling_request)
-            driver.quit()
+            # driver.quit()
 
         request.addfinalizer(fin)
         return driver  # provide the fixture value
 
-    def test_find_elements(self, driver):
-        el = driver.find_elements_by_class_name('android.widget.Button')
-        el[1].click()
-        el = driver.find_elements_by_class_name('android.widget.Button')
-        el[1].click()
-        el = driver.find_elements_by_class_name('android.widget.Button')
-        el[1].click()
-        # el = driver.find_element_by_accessibility_id('Arcs')
-        # assert el is not None
-        # driver.back()
-
-        # el = driver.find_element_by_accessibility_id("App")
-        # assert el is not None
-
-        # els = driver.find_elements_by_android_uiautomator("new UiSelector().clickable(true)")
-        # assert len(els) >= 12
-        # driver.find_element_by_android_uiautomator('text("API Demos")')
-
-    # def test_simple_actions(self, driver):
-    #     el = driver.find_element_by_accessibility_id('Graphics')
-    #     el.click()
-
-    #     el = driver.find_element_by_accessibility_id('Arcs')
-    #     el.click()
-
-    #     driver.find_element_by_android_uiautomator('new UiSelector().text("Graphics/Arcs")')
+    @pytest.mark.run(order=1)
+    def test_open_main_page(self, driver):
+        driver.find_element_by_xpath('//android.widget.Button[contains(@text, "允许")]').click()
