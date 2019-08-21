@@ -12,14 +12,19 @@ def find_element_xy_in_container(x, y, width, height, index, size):
     return dict(x = location_x, y = location_y)
 
 class TestSimpleAndroid():
+    @property
+    def package(self):
+        return 'com.thoughtworks.hmipatent'
+
     @pytest.fixture(scope="function")
     def driver(self, request, device_logger):
         driver = appium_start(
-            'com.thoughtworks.hmipatent', 
+            self.package, 
             '/Users/shuaiz/Downloads/hmipatent-debug.apk', 
             False, 
             {"appWaitPackage": "com.android.systemui", "appWaitActivity": "*"}
         )
+        driver.implicitly_wait(3)
         calling_request = request._pyfuncitem.name
 
         def fin():
@@ -41,7 +46,7 @@ class TestSimpleAndroid():
     def test_open_window(self, driver):
         window_label = self.find_element_by_text(driver, '车窗')
         assert window_label is not None
-        window_container = self.find_element_by_id(driver, 'main_widget_window_view')
+        window_container = self.find_element_by_id(driver, self.package, 'main_widget_window_view')
         touch = TouchAction(driver)
         half_open_location = find_element_xy_in_container(window_container.location['x'], window_container.location['y'], window_container.size['width'], window_container.size['height'], 1, 4)
         all_open_location = find_element_xy_in_container(window_container.location['x'], window_container.location['y'], window_container.size['width'], window_container.size['height'], 3, 4)
@@ -50,22 +55,20 @@ class TestSimpleAndroid():
         touch.tap(None, all_open_location['x'], all_open_location['y'], 1).perform()
 
     def enable_can_usb(self, driver):
-        message = self.find_element_by_id(driver, 'message')
+        message = self.find_element_by_id(driver, 'android', 'message')
         assert message.text == '允许应用“HMI Demo”访问该USB设备吗？'
-        button = self.find_element_by_id(driver, 'button1')
+        button = self.find_element_by_id(driver, 'android', 'button1')
         button.click()
-        driver.implicitly_wait(300)
 
     def enable_media_control(self, driver):
         self.find_element_by_text(driver, '允许').click()
-        switch_field = driver.find_elements_by_android_uiautomator("new UiSelector().clickable(true)")
+        switch_field = driver.find_elements_by_android_uiautomator('new UiSelector().clickable(true)')
         switch_field[0].click()
         self.find_element_by_text(driver, '允许').click()
         driver.back()
-        driver.implicitly_wait(300)
 
     def find_element_by_text(self, driver, text):
         return driver.find_element_by_android_uiautomator('new UiSelector().text("{}")'.format(text))
 
-    def find_element_by_id(self, driver, element_id):
-        return driver.find_element_by_id("android:id/{}".format(element_id))
+    def find_element_by_id(self, driver, scope, element_id):
+        return driver.find_element_by_id('{}:id/{}'.format(scope, element_id))
