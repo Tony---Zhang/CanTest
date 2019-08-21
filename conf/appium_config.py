@@ -53,7 +53,7 @@ device_id = get_serialno()
 # Read mobile os Version
 os_version = os.popen('adb -s {0} shell getprop ro.build.version.release'.format(device_id)).read()
     
-def appium_start(package, path, reset):
+def appium_start(package, path, reset, bundle):
     desired_caps = {
         'automationName': 'UiAutomator2',
         'platformName': 'Android',                      #平台
@@ -65,10 +65,12 @@ def appium_start(package, path, reset):
         'unicodeKeyboard': True,
         'resetKeyboard': True,
         'autoGrantPermissions': True,
-        'appPackage': package,
-        'appWaitPackage': 'com.android.systemui',
-        'appWaitActivity': '*'
+        'appPackage': package
     }
+    if "appWaitPackage" in bundle:
+        desired_caps.setdefault("appWaitPackage", bundle["appWaitPackage"])
+    if "appWaitActivity" in bundle:
+        desired_caps.setdefault("appWaitActivity", bundle["appWaitActivity"])
     uninstall(device_id, package)
     return webdriver.Remote(APPIUM_LOCAL_HOST_URL, desired_caps)
 
