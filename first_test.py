@@ -14,7 +14,7 @@ def find_element_xy_in_container(x, y, width, height, index, size):
 class TestSimpleAndroid():
     @pytest.fixture(scope="function")
     def driver(self, request, device_logger):
-        driver = appium_start('com.thoughtworks.hmipatent', '/Users/shuaiz/Downloads/hmipatent-debug.apk')
+        driver = appium_start('com.thoughtworks.hmipatent', '/Users/shuaiz/Downloads/hmipatent-debug.apk',  False)
         calling_request = request._pyfuncitem.name
 
         def fin():
@@ -37,7 +37,8 @@ class TestSimpleAndroid():
         assert driverAppField is not None
         residentAppField = driver.find_element_by_android_uiautomator('new UiSelector().text("驻车应用")')
         assert residentAppField is not None
-
+        
+    def test_open_window(self, driver):
         windowLabelField = driver.find_element_by_android_uiautomator('new UiSelector().text("车窗")')
         assert windowLabelField is not None
         windowContainer = driver.find_element_by_id("com.thoughtworks.hmipatent:id/main_widget_window_view")

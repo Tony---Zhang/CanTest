@@ -53,7 +53,7 @@ device_id = get_serialno()
 # Read mobile os Version
 os_version = os.popen('adb -s {0} shell getprop ro.build.version.release'.format(device_id)).read()
     
-def appium_start(package, path):
+def appium_start(package, path, reset):
     desired_caps = {
         'platformName': 'Android',                      #平台
         'platformVersion': os_version,                  #系统版本
@@ -63,7 +63,8 @@ def appium_start(package, path):
         'resetKeyboard': True,
         'autoGrantPermissions': True,
         'appPackage': package,
-        'fullReset': True,
+        'fullReset': reset,
+        'noReset': not reset,
         'app': PATH(path),
         'appWaitActivity': '*'
     }
