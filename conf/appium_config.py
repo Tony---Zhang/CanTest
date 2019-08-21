@@ -60,6 +60,7 @@ def appium_start(package, path, reset, bundle):
         'platformVersion': os_version,                  #系统版本
         'deviceName': device_id,                        #测试设备ID
         'app': PATH(path),
+        'adbExecTimeout': 50000,
         'noReset': not reset,
         'fullReset': reset,
         'unicodeKeyboard': True,
