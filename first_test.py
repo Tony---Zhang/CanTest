@@ -1,11 +1,10 @@
 import os
 import pytest
+import threading
+from time import sleep
 from appium import webdriver
 from appium.webdriver.common.touch_action import TouchAction
 from helpers import take_screenhot_and_logcat
-
-import threading
-from time import sleep
 from can.can_adapter import CanAdapter
 from can.check_frame import CheckFrame
 
@@ -36,10 +35,14 @@ class ReadThread(threading.Thread):
     def __init__(self, timeout):
         threading.Thread.__init__(self)
         self._timeout = timeout
+        self.can_adapter = CanAdapter(
+            can_index=CANIndex, device_index=DeviceIndex)
+
+    def stop(self):
+        self.can_adapter.interrupt()
 
     def run(self):
-        can_adapter = CanAdapter(can_index=CANIndex, device_index=DeviceIndex)
-        can_adapter.run(receive_data, self._timeout)
+        self.can_adapter.run(receive_data, self._timeout)
 
 
 class CheckThread(threading.Thread):
@@ -61,7 +64,7 @@ class CheckThread(threading.Thread):
                 print("Checking.TimeStamp = %d" % can_frame.timestamp)
                 self._check_data.remove(check)
                 return True
-        print('Can not find check can frame')
+        print('Not match can frame, skip')
         return False
 
     def run(self):
@@ -71,7 +74,7 @@ class CheckThread(threading.Thread):
                 print('Test case passed')
                 time_acc = self._timeout
             # Delay
-            if len(receive_data) > 0:
+            while len(receive_data) > 0:
                 check = receive_data.pop()
                 self.check_result(check)
             time_acc = time_acc + 0.1
@@ -125,14 +128,8 @@ class TestSimpleAndroid():
 
         timeout = 30
         readTh = ReadThread(timeout)
+        # Open can device and read can data
         readTh.start()
-        check_can_frame_1 = CheckFrame(
-            id='0x10AEC041', data='0x40 01 00 00 00 00 00 00 ', control='0', extended='1')
-        check_can_frame_2 = CheckFrame(
-            id='0x10AEC041', data='0x40 03 00 00 00 00 00 00 ', control='0', extended='1')
-        checkTh = CheckThread(timeout, [check_can_frame_1, check_can_frame_2])
-        checkTh.start()
-        checkTh.join()
 
         touch = TouchAction(driver)
         half_open_location = find_element_xy_in_container(
@@ -144,6 +141,15 @@ class TestSimpleAndroid():
                   half_open_location['y'], 1).perform()
         touch.tap(None, all_open_location['x'],
                   all_open_location['y'], 1).perform()
+
+        check_can_frame_1 = CheckFrame(
+            id='0x10AEC041', data='0x40 01 00 00 00 00 00 00 ', control='0', extended='1')
+        check_can_frame_2 = CheckFrame(
+            id='0x10AEC041', data='0x40 03 00 00 00 00 00 00 ', control='0', extended='1')
+        checkTh = CheckThread(timeout, [check_can_frame_1, check_can_frame_2])
+        checkTh.start()
+        checkTh.join()
+        readTh.stop()
 
     def enable_can_usb(self, driver):
         message = self.find_element_by_id(driver, 'android', 'message')

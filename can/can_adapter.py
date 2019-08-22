@@ -13,6 +13,7 @@ class CanAdapter:
     def __init__(self, can_index, device_index):
         self._can_index = can_index
         self._device_index = device_index
+        self._interrupt = False
 
     @property
     def can_index(self):
@@ -105,6 +106,9 @@ class CanAdapter:
             CanAdapter.DevType, self.device_index)
         self.log("VCI_CloseDevice: %d" % result)
 
+    def interrupt(self):
+        self._interrupt = True
+
     def log(self, msg):
         if self.debug:
             print(msg)
@@ -174,7 +178,7 @@ class CanAdapter:
         time_acc = 0
         del receive_data[:]
         # Read data
-        while time_acc <= timeout:
+        while time_acc <= timeout and not self._interrupt:
             DataNum = can.control_can.VCI_GetReceiveNum(
                 CanAdapter.DevType, self.device_index, self.can_index)
             if(DataNum > 0):
