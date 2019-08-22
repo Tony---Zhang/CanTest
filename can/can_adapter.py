@@ -1,33 +1,13 @@
 from ctypes import *
+import threading
 from time import sleep
 # import USB-CAN module
-import control_can
-from can_frame import CanFrame
-
-receive_data = []
-
-"""
-DeviceIndex:
-Ginkgo product (for I2C,SPI, CAN adapters, and Sniffers, etc) supply the way one PC could connect multiple products and 
-working simultaneously, the DeviceIndex is used to identify and distinguish those adapters. 
-For example, one PC connected two CAN Interface (adapters), then DeviceIndex = 0 is used to specify first one, and 
-DeviceIndex = 1 is used to specify the second one. This python program is used to test one CAN interface (or adapter), so 
-it's fixed to 0, if have multiple adapters connected to one PC, then please modify this parameter for different devices
-"""
-DeviceIndex = 0
-"""
-CANIndex:
-In one CAN Interface (or adapter), printed on form factor (the shell on top), it has two CAN channels, CAN1 and CAN2, 
-in Extend (recommanded, or classic) CAN software, it could be selected by "CAN1" (Equal: CANIndex = 0)
-or "CAN2"(Equal: CANIndex = 1), 
-So when CANIndex = 0 here, means CAN1 has been chosen
-"""
-CANIndex = 0
+import can.control_can
+from can.can_frame import CanFrame
 
 
 class CanAdapter:
-
-    DevType = control_can.VCI_USBCAN2
+    DevType = can.control_can.VCI_USBCAN2
 
     def __init__(self, can_index, device_index):
         self._can_index = can_index
@@ -43,7 +23,7 @@ class CanAdapter:
 
     # Scan device
     def scan_device(self):
-        result = control_can.VCI_ScanDevice(1)
+        result = can.control_can.VCI_ScanDevice(1)
         if(result == 0):
             return False
         else:
@@ -52,10 +32,10 @@ class CanAdapter:
 
     # Get board info
     def get_board_info(self):
-        CAN_BoardInfo = control_can.VCI_BOARD_INFO_EX()
-        result = control_can.VCI_ReadBoardInfoEx(
+        CAN_BoardInfo = can.control_can.VCI_BOARD_INFO_EX()
+        result = can.control_can.VCI_ReadBoardInfoEx(
             self.device_index, byref(CAN_BoardInfo))
-        if(result == control_can.STATUS_ERR):
+        if(result == can.control_can.STATUS_ERR):
             return False
         else:
             print("--CAN_BoardInfo.ProductName = %s" %
@@ -72,9 +52,9 @@ class CanAdapter:
 
     # Open device
     def open_device(self):
-        result = control_can.VCI_OpenDevice(
+        result = can.control_can.VCI_OpenDevice(
             CanAdapter.DevType, self.device_index, 0)
-        if(result == control_can.STATUS_ERR):
+        if(result == can.control_can.STATUS_ERR):
             return False
         else:
             print("Open device success!")
@@ -82,9 +62,9 @@ class CanAdapter:
 
     # Start CAN
     def start_can(self):
-        result = control_can.VCI_StartCAN(
+        result = can.control_can.VCI_StartCAN(
             CanAdapter.DevType, self.device_index, self.can_index)
-        if(result == control_can.STATUS_ERR):
+        if(result == can.control_can.STATUS_ERR):
             return False
         else:
             print("Start CAN success!")
@@ -92,10 +72,10 @@ class CanAdapter:
 
     # Get CAN status
     def get_status(self):
-        CAN_Status = control_can.VCI_CAN_STATUS()
-        result = control_can.VCI_ReadCANStatus(
+        CAN_Status = can.control_can.VCI_CAN_STATUS()
+        result = can.control_can.VCI_ReadCANStatus(
             CanAdapter.DevType, self.device_index, self.can_index, byref(CAN_Status))
-        if(result == control_can.STATUS_ERR):
+        if(result == can.control_can.STATUS_ERR):
             print("Get CAN status failed!")
         else:
             print("Buffer Size : %d" % CAN_Status.BufferSize)
@@ -114,17 +94,17 @@ class CanAdapter:
 
     # Stop receive can data
     def stop(self):
-        result = control_can.VCI_ResetCAN(
+        result = can.control_can.VCI_ResetCAN(
             CanAdapter.DevType, self.device_index, self.can_index)
         print("VCI_ResetCAN: %d" % result)
 
     # Close device
     def close(self):
-        result = control_can.VCI_CloseDevice(
+        result = can.control_can.VCI_CloseDevice(
             CanAdapter.DevType, self.device_index)
         print("VCI_CloseDevice: %d" % result)
 
-    def run(self, timeout):
+    def run(self, receive_data, timeout):
         if self.scan_device() == False:
             print("No device connected!")
             exit()
@@ -136,7 +116,7 @@ class CanAdapter:
             exit()
 
         # Can configuration
-        CAN_InitEx = control_can.VCI_INIT_CONFIG_EX()
+        CAN_InitEx = can.control_can.VCI_INIT_CONFIG_EX()
         CAN_InitEx.CAN_ABOM = 0
         CAN_InitEx.CAN_Mode = 0
         # Baud Rate: 1M
@@ -150,16 +130,16 @@ class CanAdapter:
         CAN_InitEx.CAN_RFLM = 0  # FIFO lock management: new text overwrite old
         CAN_InitEx.CAN_TXFP = 0  # send priority management: by order
         CAN_InitEx.CAN_RELAY = 0  # relay feature enable: close relay function
-        result = control_can.VCI_InitCANEx(
+        result = can.control_can.VCI_InitCANEx(
             CanAdapter.DevType, self.device_index, self.can_index, byref(CAN_InitEx))
-        if(result == control_can.STATUS_ERR):
+        if(result == can.control_can.STATUS_ERR):
             print("Init device failed!")
             exit()
         else:
             print("Init device success!")
 
         # Set filter
-        CAN_FilterConfig = control_can.VCI_FILTER_CONFIG()
+        CAN_FilterConfig = can.control_can.VCI_FILTER_CONFIG()
         CAN_FilterConfig.FilterIndex = 0
         CAN_FilterConfig.Enable = 1
         CAN_FilterConfig.ExtFrame = 0
@@ -170,9 +150,9 @@ class CanAdapter:
         CAN_FilterConfig.MASK_IDE = 0
         CAN_FilterConfig.MASK_RTR = 0
         CAN_FilterConfig.MASK_Std_Ext = 0
-        result = control_can.VCI_SetFilter(
+        result = can.control_can.VCI_SetFilter(
             CanAdapter.DevType, self.device_index, self.can_index, byref(CAN_FilterConfig))
-        if(result == control_can.STATUS_ERR):
+        if(result == can.control_can.STATUS_ERR):
             print("Set filter failed!")
             exit()
         else:
@@ -190,12 +170,12 @@ class CanAdapter:
         del receive_data[:]
         # Read data
         while time_acc <= timeout:
-            DataNum = control_can.VCI_GetReceiveNum(
+            DataNum = can.control_can.VCI_GetReceiveNum(
                 CanAdapter.DevType, self.device_index, self.can_index)
             if(DataNum > 0):
                 print('received: {}'.format(DataNum))
-                CAN_ReceiveData = (control_can.VCI_CAN_OBJ*DataNum)()
-                control_can.VCI_Receive(
+                CAN_ReceiveData = (can.control_can.VCI_CAN_OBJ*DataNum)()
+                can.control_can.VCI_Receive(
                     CanAdapter.DevType, self.device_index, self.can_index, byref(CAN_ReceiveData), DataNum, 0)
                 for i in range(0, DataNum):
                     can_frame = CanFrame(
@@ -210,22 +190,5 @@ class CanAdapter:
             time_acc = time_acc + 0.1
             sleep(0.1)
 
-        for i in range(0, len(receive_data)):
-            can_frame = receive_data[i]
-            print("--CAN_Number: %d" % i)
-            print("--CAN_ReceiveData.RemoteFlag = %d" % can_frame.control)
-            print("--CAN_ReceiveData.ExternFlag = %d" % can_frame.extented)
-            print("--CAN_ReceiveData.ID = %s" % can_frame.id)
-            print("--CAN_ReceiveData.DataLen = %d" % can_frame.data_length)
-            print("--CAN_ReceiveData.Data: %s" % can_frame.data)
-            print("--CAN_ReceiveData.TimeStamp = %d" % can_frame.timestamp)
         self.stop()
         self.close()
-
-
-timeout = 30
-can_adapter = CanAdapter(can_index=CANIndex, device_index=DeviceIndex)
-can_adapter.run(timeout)
-# Enter the enter to continue
-print("Enter the enter to continue")
-input()

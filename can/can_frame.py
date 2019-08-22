@@ -24,11 +24,11 @@ class CanFrame:
 
     @property
     def control(self):
-        return self._control
+        return "%d" % self._control
 
     @property
     def extented(self):
-        return self._extended
+        return "%d" % self._extended
 
     @property
     def timestamp(self):
