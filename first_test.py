@@ -29,7 +29,7 @@ class TestSimpleAndroid():
 
         def fin():
             take_screenhot_and_logcat(driver, device_logger, calling_request)
-            # driver.quit()
+            driver.quit()
 
         request.addfinalizer(fin)
         return driver  # provide the fixture value
@@ -42,8 +42,8 @@ class TestSimpleAndroid():
         assert driver_app_field is not None
         resident_app_field = self.find_element_by_text(driver, '驻车应用')
         assert resident_app_field is not None
-        
-    def test_open_window(self, driver):
+        # 
+    # def test_open_window(self, driver):
         window_label = self.find_element_by_text(driver, '车窗')
         assert window_label is not None
         window_container = self.find_element_by_id(driver, self.package, 'main_widget_window_view')

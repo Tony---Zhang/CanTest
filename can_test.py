@@ -217,6 +217,7 @@ if(CAN_GET_STATUS == 1):
 if(CAN_READ_DATA == 1):
     while True:
         DataNum = can.control_can.VCI_GetReceiveNum(DevType,DeviceIndex,CANIndex)
+        print('alive:{}'.format(DataNum))
         if(DataNum > 0):
             print('receive: {}'.format(DataNum))
             CAN_ReceiveData = (can.control_can.VCI_CAN_OBJ*DataNum)()
