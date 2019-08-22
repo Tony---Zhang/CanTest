@@ -1,6 +1,7 @@
 import threading
 from time import sleep
 from can.can_adapter import CanAdapter
+from can.check_frame import CheckFrame
 
 receive_data = []
 
@@ -50,6 +51,7 @@ class CheckThread(threading.Thread):
                 print("Checking.DataLen = %d" % can_frame.data_length)
                 print("Checking.Data: %s" % can_frame.data)
                 print("Checking.TimeStamp = %d" % can_frame.timestamp)
+                self._check_data.remove(check)
                 return True
         print('Can not find check can frame')
         return False
@@ -57,39 +59,15 @@ class CheckThread(threading.Thread):
     def run(self):
         time_acc = 0
         while time_acc < self._timeout:
+            if len(self._check_data) == 0:
+                print('test case passed')
+                time_acc = self._timeout
             # Delay
             if len(receive_data) > 0:
                 check = receive_data.pop()
                 self.check_result(check)
             time_acc = time_acc + 0.1
             sleep(0.1)
-
-
-class CheckFrame:
-    def __init__(self, id, data, control, extended):
-        self._id = id
-        self._data = data
-        self._control = control
-        self._extended = extended
-
-    @property
-    def id(self):
-        return self._id
-
-    @property
-    def data(self):
-        return self._data
-
-    @property
-    def control(self):
-        return self._control
-
-    @property
-    def extented(self):
-        return self._extended
-
-    def is_equal_to(self, other):
-        return self.id == other.id and self.data == other.data and self.control == other.control and self.extented == other.extented
 
 
 timeout = 30
@@ -103,6 +81,3 @@ checkTh = CheckThread(timeout, [check_can_frame_1, check_can_frame_2])
 checkTh.start()
 readTh.join()
 checkTh.join()
-# Enter the enter to continue
-# print("Enter the enter to continue")
-# input()

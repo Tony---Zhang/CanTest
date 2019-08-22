@@ -8,6 +8,7 @@ from can.can_frame import CanFrame
 
 class CanAdapter:
     DevType = can.control_can.VCI_USBCAN2
+    debug = False
 
     def __init__(self, can_index, device_index):
         self._can_index = can_index
@@ -27,7 +28,7 @@ class CanAdapter:
         if(result == 0):
             return False
         else:
-            print("Have %d device connected!" % result)
+            self.log("Have %d device connected!" % result)
             return True
 
     # Get board info
@@ -38,16 +39,16 @@ class CanAdapter:
         if(result == can.control_can.STATUS_ERR):
             return False
         else:
-            print("--CAN_BoardInfo.ProductName = %s" %
-                  bytes(CAN_BoardInfo.ProductName).decode('ascii'))
-            print("--CAN_BoardInfo.FirmwareVersion = V%d.%d.%d" %
-                  (CAN_BoardInfo.FirmwareVersion[1], CAN_BoardInfo.FirmwareVersion[2], CAN_BoardInfo.FirmwareVersion[3]))
-            print("--CAN_BoardInfo.HardwareVersion = V%d.%d.%d" %
-                  (CAN_BoardInfo.HardwareVersion[1], CAN_BoardInfo.HardwareVersion[2], CAN_BoardInfo.HardwareVersion[3]))
-            print("--CAN_BoardInfo.SerialNumber = ", end='')
+            self.log("--CAN_BoardInfo.ProductName = %s" %
+                     bytes(CAN_BoardInfo.ProductName).decode('ascii'))
+            self.log("--CAN_BoardInfo.FirmwareVersion = V%d.%d.%d" %
+                     (CAN_BoardInfo.FirmwareVersion[1], CAN_BoardInfo.FirmwareVersion[2], CAN_BoardInfo.FirmwareVersion[3]))
+            self.log("--CAN_BoardInfo.HardwareVersion = V%d.%d.%d" %
+                     (CAN_BoardInfo.HardwareVersion[1], CAN_BoardInfo.HardwareVersion[2], CAN_BoardInfo.HardwareVersion[3]))
+            self.log("--CAN_BoardInfo.SerialNumber = ")
             for i in range(0, len(CAN_BoardInfo.SerialNumber)):
-                print("%02X" % CAN_BoardInfo.SerialNumber[i], end='')
-            print("")
+                self.log("%02X" % CAN_BoardInfo.SerialNumber[i])
+            self.log("")
             return True
 
     # Open device
@@ -57,7 +58,7 @@ class CanAdapter:
         if(result == can.control_can.STATUS_ERR):
             return False
         else:
-            print("Open device success!")
+            self.log("Open device success!")
             return True
 
     # Start CAN
@@ -67,7 +68,7 @@ class CanAdapter:
         if(result == can.control_can.STATUS_ERR):
             return False
         else:
-            print("Start CAN success!")
+            self.log("Start CAN success!")
             return True
 
     # Get CAN status
@@ -76,43 +77,47 @@ class CanAdapter:
         result = can.control_can.VCI_ReadCANStatus(
             CanAdapter.DevType, self.device_index, self.can_index, byref(CAN_Status))
         if(result == can.control_can.STATUS_ERR):
-            print("Get CAN status failed!")
+            self.log("Get CAN status failed!")
         else:
-            print("Buffer Size : %d" % CAN_Status.BufferSize)
-            print("ESR : 0x%08X" % CAN_Status.regESR)
-            print("------Error warning flag : %d" %
-                  ((CAN_Status.regESR >> 0) & 0x01))
-            print("------Error passive flag : %d" %
-                  ((CAN_Status.regESR >> 1) & 0x01))
-            print("------Bus-off flag : %d" %
-                  ((CAN_Status.regESR >> 2) & 0x01))
-            print("------Last error code(%d) : " %
-                  ((CAN_Status.regESR >> 4) & 0x07), end='')
+            self.log("Buffer Size : %d" % CAN_Status.BufferSize)
+            self.log("ESR : 0x%08X" % CAN_Status.regESR)
+            self.log("------Error warning flag : %d" %
+                     ((CAN_Status.regESR >> 0) & 0x01))
+            self.log("------Error passive flag : %d" %
+                     ((CAN_Status.regESR >> 1) & 0x01))
+            self.log("------Bus-off flag : %d" %
+                     ((CAN_Status.regESR >> 2) & 0x01))
+            self.log("------Last error code(%d) : " %
+                     ((CAN_Status.regESR >> 4) & 0x07))
             Error = ["No Error", "Stuff Error", "Form Error", "Acknowledgment Error",
                      "Bit recessive Error", "Bit dominant Error", "CRC Error", "Set by software"]
-            print(Error[(CAN_Status.regESR >> 4) & 0x07])
+            self.log(Error[(CAN_Status.regESR >> 4) & 0x07])
 
     # Stop receive can data
     def stop(self):
         result = can.control_can.VCI_ResetCAN(
             CanAdapter.DevType, self.device_index, self.can_index)
-        print("VCI_ResetCAN: %d" % result)
+        self.log("VCI_ResetCAN: %d" % result)
 
     # Close device
     def close(self):
         result = can.control_can.VCI_CloseDevice(
             CanAdapter.DevType, self.device_index)
-        print("VCI_CloseDevice: %d" % result)
+        self.log("VCI_CloseDevice: %d" % result)
+
+    def log(self, msg):
+        if self.debug:
+            print(msg)
 
     def run(self, receive_data, timeout):
         if self.scan_device() == False:
-            print("No device connected!")
+            self.log("No device connected!")
             exit()
         if self.get_board_info() == False:
-            print("Get board info failed!")
+            self.log("Get board info failed!")
             exit()
         if self.open_device() == False:
-            print("Open device failed!")
+            self.log("Open device failed!")
             exit()
 
         # Can configuration
@@ -133,10 +138,10 @@ class CanAdapter:
         result = can.control_can.VCI_InitCANEx(
             CanAdapter.DevType, self.device_index, self.can_index, byref(CAN_InitEx))
         if(result == can.control_can.STATUS_ERR):
-            print("Init device failed!")
+            self.log("Init device failed!")
             exit()
         else:
-            print("Init device success!")
+            self.log("Init device success!")
 
         # Set filter
         CAN_FilterConfig = can.control_can.VCI_FILTER_CONFIG()
@@ -153,13 +158,13 @@ class CanAdapter:
         result = can.control_can.VCI_SetFilter(
             CanAdapter.DevType, self.device_index, self.can_index, byref(CAN_FilterConfig))
         if(result == can.control_can.STATUS_ERR):
-            print("Set filter failed!")
+            self.log("Set filter failed!")
             exit()
         else:
-            print("Set filter success!")
+            self.log("Set filter success!")
 
         if self.start_can() == False:
-            print("Start CAN failed!")
+            self.log("Start CAN failed!")
             exit()
         # Delay
         sleep(0.5)
@@ -173,7 +178,7 @@ class CanAdapter:
             DataNum = can.control_can.VCI_GetReceiveNum(
                 CanAdapter.DevType, self.device_index, self.can_index)
             if(DataNum > 0):
-                print('received: {}'.format(DataNum))
+                self.log('received: {}'.format(DataNum))
                 CAN_ReceiveData = (can.control_can.VCI_CAN_OBJ*DataNum)()
                 can.control_can.VCI_Receive(
                     CanAdapter.DevType, self.device_index, self.can_index, byref(CAN_ReceiveData), DataNum, 0)
