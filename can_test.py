@@ -31,39 +31,67 @@ DevType = can.control_can.VCI_USBCAN2
 
 
 # Scan device
-nRet = can.control_can.VCI_ScanDevice(1)
-if(nRet == 0):
-    print("No device connected!")
-    exit()
-else:
-    print("Have %d device connected!" % nRet)
-# Get board info
-if(CAN_GET_BOARD_INFO == 1):
-    CAN_BoardInfo = can.control_can.VCI_BOARD_INFO_EX()
-    nRet = can.control_can.VCI_ReadBoardInfoEx(
-        DeviceIndex, byref(CAN_BoardInfo))
-    if(nRet == can.control_can.STATUS_ERR):
-        print("Get board info failed!")
-        exit()
+def scan_device():
+    result = can.control_can.VCI_ScanDevice(1)
+    if(result == 0):
+        return False
     else:
-        print("--CAN_BoardInfo.ProductName = %s" %
-              bytes(CAN_BoardInfo.ProductName).decode('ascii'))
-        print("--CAN_BoardInfo.FirmwareVersion = V%d.%d.%d" %
-              (CAN_BoardInfo.FirmwareVersion[1], CAN_BoardInfo.FirmwareVersion[2], CAN_BoardInfo.FirmwareVersion[3]))
-        print("--CAN_BoardInfo.HardwareVersion = V%d.%d.%d" %
-              (CAN_BoardInfo.HardwareVersion[1], CAN_BoardInfo.HardwareVersion[2], CAN_BoardInfo.HardwareVersion[3]))
-        print("--CAN_BoardInfo.SerialNumber = ", end='')
-        for i in range(0, len(CAN_BoardInfo.SerialNumber)):
-            print("%02X" % CAN_BoardInfo.SerialNumber[i], end='')
-        print("")
+        print("Have %d device connected!" % result)
+        return True
+
+
+# Get board info
+def get_board_info(device_index):
+    if(CAN_GET_BOARD_INFO == 1):
+        CAN_BoardInfo = can.control_can.VCI_BOARD_INFO_EX()
+        result = can.control_can.VCI_ReadBoardInfoEx(
+            device_index, byref(CAN_BoardInfo))
+        if(result == can.control_can.STATUS_ERR):
+            return False
+        else:
+            print("--CAN_BoardInfo.ProductName = %s" %
+                  bytes(CAN_BoardInfo.ProductName).decode('ascii'))
+            print("--CAN_BoardInfo.FirmwareVersion = V%d.%d.%d" %
+                  (CAN_BoardInfo.FirmwareVersion[1], CAN_BoardInfo.FirmwareVersion[2], CAN_BoardInfo.FirmwareVersion[3]))
+            print("--CAN_BoardInfo.HardwareVersion = V%d.%d.%d" %
+                  (CAN_BoardInfo.HardwareVersion[1], CAN_BoardInfo.HardwareVersion[2], CAN_BoardInfo.HardwareVersion[3]))
+            print("--CAN_BoardInfo.SerialNumber = ", end='')
+            for i in range(0, len(CAN_BoardInfo.SerialNumber)):
+                print("%02X" % CAN_BoardInfo.SerialNumber[i], end='')
+            print("")
+            return True
+    return True
+
 
 # Open device
-nRet = can.control_can.VCI_OpenDevice(DevType, DeviceIndex, 0)
-if(nRet == can.control_can.STATUS_ERR):
+def open_device(dev_type, dev_index):
+    result = can.control_can.VCI_OpenDevice(dev_type, dev_index, 0)
+    if(result == can.control_can.STATUS_ERR):
+        return False
+    else:
+        print("Open device success!")
+        return True
+
+
+# Start CAN
+def start_can(dev_type, device_index, can_index):
+    result = can.control_can.VCI_StartCAN(dev_type, device_index, can_index)
+    if(result == can.control_can.STATUS_ERR):
+        return False
+    else:
+        print("Start CAN success!")
+        return True
+
+
+if scan_device() == False:
+    print("No device connected!")
+    exit()
+if get_board_info(DeviceIndex) == False:
+    print("Get board info failed!")
+    exit()
+if open_device(DevType, DeviceIndex) == False:
     print("Open device failed!")
     exit()
-else:
-    print("Open device success!")
 
 # Can configuration
 CAN_InitEx = can.control_can.VCI_INIT_CONFIG_EX()
@@ -80,9 +108,9 @@ CAN_InitEx.CAN_NART = 1  # text repeat send management: disable text repeat send
 CAN_InitEx.CAN_RFLM = 0  # FIFO lock management: new text overwrite old
 CAN_InitEx.CAN_TXFP = 0  # send priority management: by order
 CAN_InitEx.CAN_RELAY = 0  # relay feature enable: close relay function
-nRet = can.control_can.VCI_InitCANEx(
+result = can.control_can.VCI_InitCANEx(
     DevType, DeviceIndex, CANIndex, byref(CAN_InitEx))
-if(nRet == can.control_can.STATUS_ERR):
+if(result == can.control_can.STATUS_ERR):
     print("Init device failed!")
     exit()
 else:
@@ -100,31 +128,27 @@ CAN_FilterConfig.ID_Std_Ext = 0
 CAN_FilterConfig.MASK_IDE = 0
 CAN_FilterConfig.MASK_RTR = 0
 CAN_FilterConfig.MASK_Std_Ext = 0
-nRet = can.control_can.VCI_SetFilter(
+result = can.control_can.VCI_SetFilter(
     DevType, DeviceIndex, CANIndex, byref(CAN_FilterConfig))
-if(nRet == can.control_can.STATUS_ERR):
+if(result == can.control_can.STATUS_ERR):
     print("Set filter failed!")
     exit()
 else:
     print("Set filter success!")
 
-# Start CAN
-nRet = can.control_can.VCI_StartCAN(DevType, DeviceIndex, CANIndex)
-if(nRet == can.control_can.STATUS_ERR):
+
+if start_can(DevType, DeviceIndex, CANIndex) == False:
     print("Start CAN failed!")
     exit()
-else:
-    print("Start CAN success!")
-
 # Delay
 sleep(0.5)
 
 # Get CAN status
 if(CAN_GET_STATUS == 1):
     CAN_Status = can.control_can.VCI_CAN_STATUS()
-    nRet = can.control_can.VCI_ReadCANStatus(
+    result = can.control_can.VCI_ReadCANStatus(
         DevType, DeviceIndex, CANIndex, byref(CAN_Status))
-    if(nRet == can.control_can.STATUS_ERR):
+    if(result == can.control_can.STATUS_ERR):
         print("Get CAN status failed!")
     else:
         print("Buffer Size : %d" % CAN_Status.BufferSize)
@@ -171,8 +195,8 @@ print("Enter the enter to continue")
 input()
 
 # Stop receive can data
-nRet = can.control_can.VCI_ResetCAN(DevType, DeviceIndex, CANIndex)
-print("VCI_ResetCAN nRet = %d" % nRet)
+result = can.control_can.VCI_ResetCAN(DevType, DeviceIndex, CANIndex)
+print("VCI_ResetCAN result = %d" % result)
 # Close device
-nRet = can.control_can.VCI_CloseDevice(DevType, DeviceIndex)
-print("VCI_CloseDevice nRet = %d" % nRet)
+result = can.control_can.VCI_CloseDevice(DevType, DeviceIndex)
+print("VCI_CloseDevice result = %d" % result)
