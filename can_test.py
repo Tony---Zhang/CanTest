@@ -164,8 +164,12 @@ if(CAN_GET_STATUS == 1):
                  "Bit recessive Error", "Bit dominant Error", "CRC Error", "Set by software"]
         print(Error[(CAN_Status.regESR >> 4) & 0x07])
 
+
+timeout = 30
+time_acc = 0
+
 # Read data
-while True:
+while time_acc <= timeout:
     DataNum = can.control_can.VCI_GetReceiveNum(DevType, DeviceIndex, CANIndex)
     if(DataNum > 0):
         print('receive: {}'.format(DataNum))
@@ -188,6 +192,7 @@ while True:
             print("--CAN_ReceiveData.TimeStamp = %d" %
                   CAN_ReceiveData[i].TimeStamp)
     # Delay
+    time_acc = time_acc + 0.1
     sleep(0.1)
 
 # Enter the enter to continue
