@@ -128,16 +128,16 @@ if(CAN_INIT_EX == 1):
         print("Init device success!")
     # Set filter
     CAN_FilterConfig = can.control_can.VCI_FILTER_CONFIG()
-    # CAN_FilterConfig.FilterIndex = 0
-    CAN_FilterConfig.Enable = 0        
-    # CAN_FilterConfig.ExtFrame = 0
-    # CAN_FilterConfig.FilterMode = 0
-    # CAN_FilterConfig.ID_IDE = 0
-    # CAN_FilterConfig.ID_RTR = 0
-    # CAN_FilterConfig.ID_Std_Ext = 0
-    # CAN_FilterConfig.MASK_IDE = 0
-    # CAN_FilterConfig.MASK_RTR = 0
-    # CAN_FilterConfig.MASK_Std_Ext = 0
+    CAN_FilterConfig.FilterIndex = 0
+    CAN_FilterConfig.Enable = 1        
+    CAN_FilterConfig.ExtFrame = 0
+    CAN_FilterConfig.FilterMode = 0
+    CAN_FilterConfig.ID_IDE = 0
+    CAN_FilterConfig.ID_RTR = 0
+    CAN_FilterConfig.ID_Std_Ext = 0
+    CAN_FilterConfig.MASK_IDE = 0
+    CAN_FilterConfig.MASK_RTR = 0
+    CAN_FilterConfig.MASK_Std_Ext = 0
     nRet = can.control_can.VCI_SetFilter(DevType,DeviceIndex,CANIndex,byref(CAN_FilterConfig))
     if(nRet == can.control_can.STATUS_ERR):
         print("Set filter failed!")
@@ -217,7 +217,6 @@ if(CAN_GET_STATUS == 1):
 if(CAN_READ_DATA == 1):
     while True:
         DataNum = can.control_can.VCI_GetReceiveNum(DevType,DeviceIndex,CANIndex)
-        print('alive:{}'.format(DataNum))
         if(DataNum > 0):
             print('receive: {}'.format(DataNum))
             CAN_ReceiveData = (can.control_can.VCI_CAN_OBJ*DataNum)()
