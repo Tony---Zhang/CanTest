@@ -2,6 +2,7 @@ from ctypes import *
 from time import sleep
 # import USB-CAN module
 import can.control_can
+from can.can_frame import CanFrame
 
 # get can board info
 CAN_GET_BOARD_INFO = 1
@@ -29,42 +30,7 @@ DevType: fixed for below setting
 """
 DevType = can.control_can.VCI_USBCAN2
 
-
-class CanFrame:
-    def __init__(self, id, data, control, extented, data_length, timestamp):
-        self._id = id
-        self._data = data
-        self._control = control
-        self._extended = extented
-        self._data_length = data_length
-        self._timestamp = timestamp
-
-    @property
-    def id(self):
-        return "0x%X" % self._id
-
-    @property
-    def data(self):
-        data = "0x"
-        for i in range(0, self._data_length):
-            data = data + "%02X " % self._data[i]
-        return data
-
-    @property
-    def data_length(self):
-        return self._data_length
-
-    @property
-    def control(self):
-        return self._control
-
-    @property
-    def extented(self):
-        return self._extended
-
-    @property
-    def timestamp(self):
-        return self._timestamp
+receive_data = []
 
 
 # Scan device
@@ -205,6 +171,7 @@ if(CAN_GET_STATUS == 1):
 timeout = 30
 time_acc = 0
 
+del receive_data[:]
 # Read data
 while time_acc <= timeout:
     DataNum = can.control_can.VCI_GetReceiveNum(DevType, DeviceIndex, CANIndex)
@@ -221,16 +188,20 @@ while time_acc <= timeout:
                 extented=CAN_ReceiveData[i].ExternFlag,
                 data_length=CAN_ReceiveData[i].DataLen,
                 timestamp=CAN_ReceiveData[i].TimeStamp)
-            print("")
-            print("--CAN_ReceiveData.RemoteFlag = %d" % can_frame.control)
-            print("--CAN_ReceiveData.ExternFlag = %d" % can_frame.extented)
-            print("--CAN_ReceiveData.ID = %s" % can_frame.id)
-            print("--CAN_ReceiveData.DataLen = %d" % can_frame.data_length)
-            print("--CAN_ReceiveData.Data: %s" % can_frame.data)
-            print("--CAN_ReceiveData.TimeStamp = %d" % can_frame.timestamp)
+            receive_data.append(can_frame)
     # Delay
     time_acc = time_acc + 0.1
     sleep(0.1)
+
+for i in range(0, len(receive_data)):
+    can_frame = receive_data[i]
+    print("--CAN_Number: %d" % i)
+    print("--CAN_ReceiveData.RemoteFlag = %d" % can_frame.control)
+    print("--CAN_ReceiveData.ExternFlag = %d" % can_frame.extented)
+    print("--CAN_ReceiveData.ID = %s" % can_frame.id)
+    print("--CAN_ReceiveData.DataLen = %d" % can_frame.data_length)
+    print("--CAN_ReceiveData.Data: %s" % can_frame.data)
+    print("--CAN_ReceiveData.TimeStamp = %d" % can_frame.timestamp)
 
 # Enter the enter to continue
 print("Enter the enter to continue")
